@@ -4,17 +4,37 @@
     <meta charset="utf-8">
     <title>Basic Site</title>
     <link rel="stylesheet" href="bootstrap.min.css">
+    <style type="text/css" media="screen">
+      #editor {
+          position: absolute;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          left: 0;
+      }
+    </style>
 </head>
 <body>
 	<div class="container">
   		<div class="row">
   			<div class="col-md-8" style="background-color:rgb(240,240,240)">
-  				Basic Site
+  				<canvas id="viewport" width="700px" height="700px" style="border:1px solid #000000;"></canvas>
   			</div>
-  			<div class="col-md-2" style="background-color:rgb(230,230,230)">
-  				With Bootstrap <br>
-  				And Jquery <br>
-  				And Underscore
+  			<div class="col-md-4" style="background-color:rgb(230,230,230)">
+          <div class="row">
+            <div class="col-md-6">
+              Go
+            </div>
+            <div class="col-md-6">
+              Reload
+            </div>
+          </div>
+          <div class="row">
+
+            <div id="editor" style="height:700px">function field(x, y) {
+    return [x, y];
+}</div>
+          </div>
   			</div>
   		</div>
 	</div>
@@ -22,5 +42,28 @@
 	<script type="text/javascript" src="underscore-min.js"></script>
 	<script type="text/javascript" src="jquery-2.1.4.min.js"></script>
 	<script type="text/javascript" src="bootstrap.min.js"></script>
+  <script type="text/javascript" src="jfoil.js"></script>
+  <script src="ace.js" type="text/javascript" charset="utf-8"></script>
+
+  <script>
+  $( document ).ready(function() {
+    var c = document.getElementById("viewport");
+    var ctx = c.getContext("2d");
+    setupScene();
+    draw(ctx);
+
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/monokai");
+    editor.getSession().setMode("ace/mode/javascript");
+    editor.getSession().on("change", function(changeEvent) {
+      if (isValidField(editor.getValue()) === true) {
+        draw(ctx);
+      }
+    });
+
+  });
+
+  </script>
+
 </body>
 </html>
