@@ -32,7 +32,35 @@
           <div class="row">
 
             <div id="editor" style="height:700px">function field(x, y) {
-    return [x, y];
+    if (mag(x, y) < 120) {
+        return [0, 0];
+    }
+    var si = sink(x-20, y);
+    var so = source(x + 20, y);
+    return [60 + si[0] + so[0], si[1] + so[1]];
+}
+
+function source(x, y) {
+    var scale = 20000;
+    var m = mag(x, y);
+    var ms = m * m;
+    var X = x / ms;
+    var Y = y / ms ;
+    return [scale * X, scale * Y];
+}
+
+function sink(x, y) {
+    var scale = 20000;
+    var m = mag(x, y);
+    var ms = m * m;
+    var X = - x / ms;
+    var Y = - y / ms ;
+    return [scale * X, scale * Y];
+}
+
+
+function mag(x, y) {
+    return Math.sqrt(x * x + y * y);
 }</div>
           </div>
   			</div>

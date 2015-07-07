@@ -22,7 +22,7 @@ function drawArrows(ctx) {
 	ctx.strokeStyle = "#0000DD";
 
 
-	var spacing = 40;
+	var spacing = 20;
 	var minX = -(sizeWidth / 2.0);
 	var maxX = sizeWidth / 2.0;
 	var minY = -sizeHeight / 2.0;
