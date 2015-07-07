@@ -71,12 +71,15 @@ function mag(x, y) {
 	<script type="text/javascript" src="jquery-2.1.4.min.js"></script>
 	<script type="text/javascript" src="bootstrap.min.js"></script>
   <script type="text/javascript" src="jfoil.js"></script>
+  <script type="text/javascript" src="numeric-1.2.6.min.js"></script>
   <script src="ace.js" type="text/javascript" charset="utf-8"></script>
 
   <script>
   $( document ).ready(function() {
     var c = document.getElementById("viewport");
     var ctx = c.getContext("2d");
+    graphContext(ctx);
+
     setupScene();
     draw(ctx);
 

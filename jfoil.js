@@ -1,53 +1,96 @@
-var field;
+var wing;
+
+function graphContext(ctx) {
+    /*
+    Given an ordinary CanvasRenderingContext2D, modify its so that it graphs
+    with 0, 0 at the center
+    growing x to the right
+    growing y up
+     */
+    var sizeWidth = ctx.canvas.clientWidth;
+    var sizeHeight = ctx.canvas.clientHeight;
+
+    var orig_fillRect = ctx.fillRect;
+    ctx.fillRect = function(x, y, w, h) {
+        orig_fillRect.apply(
+            this,
+            [
+                x + sizeWidth / 2,
+                sizeHeight / 2 - y - h,
+                w,
+                h
+            ]);
+    };
+
+    var orig_moveTo = ctx.moveTo;
+    ctx.moveTo = function(x, y) {
+        orig_moveTo.apply(
+            this,
+            [
+                x + sizeWidth / 2,
+                sizeHeight / 2 - y
+            ]);
+    };
+
+    var orig_lineTo = ctx.lineTo;
+    ctx.lineTo = function(x, y) {
+        orig_lineTo.apply(
+            this,
+            [
+                x + sizeWidth / 2,
+                sizeHeight / 2 - y
+            ]);
+    };
+
+}
 
 function isValidField(text) {
-	try {
-		eval(text);
-		var someValue = field(10, 10);
-		return true;
-	}
-	catch (err) {
-		return false;
-	}
+    try {
+        eval(text);
+        var someValue = field(10, 10);
+        return true;
+    }
+    catch (err) {
+        return false;
+    }
 }
 
 function drawArrows(ctx) {
-	ctx.fillStyle = "#FFFFFF";
-	var sizeWidth = ctx.canvas.clientWidth;
-	var sizeHeight = ctx.canvas.clientHeight;
+    ctx.fillStyle = "#FFFFFF";
+    var sizeWidth = ctx.canvas.clientWidth;
+    var sizeHeight = ctx.canvas.clientHeight;
 
-	ctx.fillRect(0, 0, sizeWidth, sizeHeight);
+    ctx.fillRect(-sizeWidth / 2, -sizeWidth / 2, sizeWidth, sizeHeight);
 
-	ctx.fillStyle = "#0000DD";
-	ctx.strokeStyle = "#0000DD";
+    ctx.fillStyle = "#0000DD";
+    ctx.strokeStyle = "#0000DD";
 
 
-	var spacing = 20;
-	var minX = -(sizeWidth / 2.0);
-	var maxX = sizeWidth / 2.0;
-	var minY = -sizeHeight / 2.0;
-	var maxY = sizeHeight / 2.0;
+    var spacing = 20;
+    var minX = -(sizeWidth / 2.0);
+    var maxX = sizeWidth / 2.0;
+    var minY = -sizeHeight / 2.0;
+    var maxY = sizeHeight / 2.0;
 
-	for (var x = minX; x <= maxX; x+=spacing) {
-		for (var y = minY; y <= maxY; y+=spacing) {
-			ctx.fillRect(x - minX, y - minY, 2, 2);
+    var editor = ace.edit("editor");
+    var text = editor.getValue();
+    for (var x = minX; x <= maxX; x+=spacing) {
+        for (var y = minY; y <= maxY; y+=spacing) {
+            // ctx.fillRect(x, y, 1, 1);
 
-			var editor = ace.edit("editor");
-			var text = editor.getValue();
-			eval(text);
+            eval(text);
+            var vect = field(x, y);
 
-			var vect = field(x, y);
-
-			drawArrow(
-				ctx,
-				x - minX, y - minY,
-				vect[0], vect[1]);
-		}
-	}
+            drawArrow(
+                ctx,
+                x, y,
+                vect[0], vect[1]);
+        }
+    }
 }
 
 function drawArrow(ctx, fromx, fromy, relx, rely) {
-	drawArrowAbsolute(ctx, fromx, fromy, fromx+relx, fromy+rely);
+    drawArrowAbsolute(ctx, fromx, fromy, fromx+relx, fromy+rely);
 }
 function drawArrowAbsolute(ctx, fromx, fromy, tox, toy){
     var headlen = 10;
@@ -82,18 +125,31 @@ function drawArrowAbsolute(ctx, fromx, fromy, tox, toy){
     ctx.fill();
 }
 
-function fieldFunc(x, y) {
-	return [x, y];
-}
-
 
 function draw(ctx) {
-	"use strict";
-	drawArrows(ctx);
+    drawArrows(ctx);
+    drawWing(ctx);
 }
 
+function drawWing(ctx) {
+    ctx.fillStyle = '#00FF00';
+    ctx.beginPath();
+    ctx.moveTo(wing[0][0], wing[0][1]);
+    for (pt of wing) {
+        console.log(pt[0], pt[1]);
+        ctx.lineTo(pt[0], pt[1]);
+    }
+    ctx.closePath();
+    ctx.fill();
+}
 
 function setupScene() {
-	"use strict";
-	field = fieldFunc;
+    var points = [
+        [-200, 0],
+        [-100, 40],
+        [100, 40],
+        [200, 0]
+    ];
+
+    wing = points;
 }
