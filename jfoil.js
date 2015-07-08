@@ -1,4 +1,5 @@
 var wing;
+var midPoints;
 
 function graphContext(ctx) {
     /*
@@ -48,7 +49,12 @@ function isValidField(text) {
     try {
         eval(text);
         var someValue = field(10, 10);
-        return true;
+        if (someValue[0] > 0 || someValue[0] < 0) {
+            return true;
+        }
+        else {
+            return false;
+        }
     }
     catch (err) {
         return false;
@@ -128,7 +134,7 @@ function drawArrowAbsolute(ctx, fromx, fromy, tox, toy){
 
 function draw(ctx) {
     drawArrows(ctx);
-    drawWing(ctx);
+    // drawWing(ctx);
 }
 
 function drawWing(ctx) {
@@ -136,11 +142,18 @@ function drawWing(ctx) {
     ctx.beginPath();
     ctx.moveTo(wing[0][0], wing[0][1]);
     for (pt of wing) {
-        console.log(pt[0], pt[1]);
+        // console.log(pt[0], pt[1]);
         ctx.lineTo(pt[0], pt[1]);
     }
     ctx.closePath();
     ctx.fill();
+
+}
+
+function dist(point0, point1) {
+    var x = point1[0] - point0[0];
+    var y = point1[1] - point0[1];
+    return Math.hypot(x, y);
 }
 
 function setupScene() {
@@ -151,5 +164,45 @@ function setupScene() {
         [200, 0]
     ];
 
+    var midPoints = [];
+    for (var i = 0; i < points.length; i++) {
+        var p0 = points[i];
+        var p1;
+        if (i + 1 == points.length) {
+            p1 = points[0];
+        }
+        else {
+            p1 = points[i + 1];
+        }
+        midPoints.push([
+            (p0[0] + p1[0]) / 2,
+            (p0[1] + p1[1]) / 2,
+        ])
+    }
+
     wing = points;
+    midPoints = midPoints;
+
+    for (pt of midPoints) {
+        console.log(pt);
+    }
+
+    var A = [];
+    var b = [];
+    for (var i = 0; i < points.length; i++) {
+        var midpoint = midPoints[i];
+        var An = [];
+        for (var j = 0; j < points.length; j++) {
+            var vortex = points[j];
+            var d = dist(midpoint, vortex);
+            console.log("DISTANCE BETWEEN", vortex, midpoint, d);
+            An.push(1 / d / d);
+        }
+        A.push(An);
+        b.push(0);
+    }
+    console.log("A", A);
+    console.log("b", b);
+    var x = numeric.solve(A, b);
+    console.log("x", x);
 }
