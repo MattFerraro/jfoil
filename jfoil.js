@@ -80,11 +80,11 @@ function drawArrows(ctx) {
 
     var editor = ace.edit("editor");
     var text = editor.getValue();
+    eval(text);
     for (var x = minX; x <= maxX; x+=spacing) {
         for (var y = minY; y <= maxY; y+=spacing) {
             // ctx.fillRect(x, y, 1, 1);
 
-            eval(text);
             var vect = field(x, y);
 
             drawArrow(
