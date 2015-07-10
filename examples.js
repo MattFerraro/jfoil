@@ -1,8 +1,7 @@
 function field(x, y) {
     var scal = 1;
     return addAll([
-        sourceSheet(scal * 100, -100, -100, -100, 100, x, y),
-        uniformFlow(scal * 50, 0)
+        sourceSheet(scal * 100, -200, 0, 200, 0, x, y)
     ]);
 }
 
@@ -14,25 +13,19 @@ function sourceSheet(lambda, x0, y0, x1, y1, x, y) {
 	var X = [x, y];
 
 	// finds the midpoint
-	// var m = [(x0 + x1) / 2, (y0 + y1) / 2];
 	var M = numeric.mul(0.5, numeric.add(X0, X1));
 
 	// points from midpoint to x1, our new x axis
-	// var b = [x1 - m[0], y1 - m[1]];
 	var B = numeric.sub(X1, M);
 
 	// err...normalize that vector...
-	// var mag_b = Math.hypot(b[0], b[1]);
-	// b = [b[0] / mag_b, b[1] / mag_b];
 	var magB = numeric.norm2(B);
 	B = numeric.mul(1/magB, B);
 
 	// points from the midpoint up, our new y axis
-	// var c = [-b[1], b[0]];
 	var C = numeric.dot([[0, -1], [1, 0]], B);
 
 	// points from the midpoint of the sheet to the point x, y
-	// var a = [x - m[0], y - m[1]];
 	var A = numeric.sub(X, M);
 
 	var x_tilde = numeric.dot(A, B);
@@ -50,6 +43,46 @@ function sourceSheet(lambda, x0, y0, x1, y1, x, y) {
 	// Lastly, transform back into x, y coordinates
 	return numeric.add(numeric.mul(u, B), numeric.mul(v, C));
 }
+
+function vortexSheet(gamma, x0, y0, x1, y1, x, y) {
+	var l = Math.hypot(x1 - x0, y1 - y0);
+
+	var X0 = [x0, y0];
+	var X1 = [x1, y1];
+	var X = [x, y];
+
+	// finds the midpoint
+	var M = numeric.mul(0.5, numeric.add(X0, X1));
+
+	// points from midpoint to x1, our new x axis
+	var B = numeric.sub(X1, M);
+
+	// err...normalize that vector...
+	var magB = numeric.norm2(B);
+	B = numeric.mul(1/magB, B);
+
+	// points from the midpoint up, our new y axis
+	var C = numeric.dot([[0, -1], [1, 0]], B);
+
+	// points from the midpoint of the sheet to the point x, y
+	var A = numeric.sub(X, M);
+
+	var x_tilde = numeric.dot(A, B);
+	var y_tilde = numeric.dot(A, C);
+
+	if (y_tilde === 0) {
+		return vortexSheet(gamma, x0, y0, x1, y1, x+0.00001, y);
+	}
+
+	var scale = gamma / 2 / Math.PI;
+	var v = scale * (x_tilde / y_tilde) * (Math.atan((x_tilde - l/2) / y_tilde) - Math.atan((x_tilde + l/2) / y_tilde));
+	var u = scale * (Math.atan((x_tilde + l/2) / y_tilde) - Math.atan((x_tilde - l/2) / y_tilde));
+
+	// Lastly, transform back into x, y coordinates
+	return numeric.add(numeric.mul(u, B), numeric.mul(v, C));
+}
+
+
 
 function pointVortex(gamma, X, Y, x, y) {
     var scale = gamma / 2 / Math.PI;
