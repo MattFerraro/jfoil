@@ -140,12 +140,13 @@ function addAll(listOfPoints) {
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/monokai");
     editor.getSession().setMode("ace/mode/javascript");
-    editor.getSession().on("change", function(changeEvent) {
-      matt = editor.getValue();
-      if (isValidField(editor.getValue()) === true) {
-        draw(ctx);
-      }
-    });
+    // editor.getSession().on("change", function(changeEvent) {
+    //   matt = editor.getValue();
+    //   if (isValidField(editor.getValue()) === true) {
+    //     draw(ctx);
+    //   }
+    // });
+    // draw(ctx);
 
   });
 
