@@ -135,8 +135,52 @@ function drawArrowAbsolute(ctx, fromx, fromy, tox, toy){
 
 
 function draw(ctx) {
-    drawArrows(ctx);
+    // drawArrows(ctx);
     drawWing(ctx);
+    drawStreamlines(ctx);
+}
+
+function drawStreamlines(ctx) {
+    ctx.strokeStyle = "#0000DD";
+
+    var sizeWidth = ctx.canvas.clientWidth;
+    var sizeHeight = ctx.canvas.clientHeight;
+    var minX = -(sizeWidth / 2.0);
+    var maxX = sizeWidth / 2.0;
+    var minY = -sizeHeight / 2.0;
+    var maxY = sizeHeight / 2.0;
+
+    var lines = 30;
+    for (var i = 0; i < lines; i++) {
+        var scal = 0.1;
+        var d = [minX + 190, i * sizeHeight / lines - maxY];
+
+        var p = [d[0], d[1]];
+        ctx.beginPath();
+        ctx.moveTo(p[0], p[1]);
+        for (k= 0; k < 500; k++) {
+            var vel = field(p[0], p[1]);
+            p = numeric.add(p, numeric.mul(scal, vel));
+            ctx.lineTo(p[0], p[1]);
+
+            if (p[0] > maxX || p[0] < minX || p[1] > maxY || p[1] < minY) {
+                break;
+            }
+        }
+        p = [d[0], d[1]];
+        ctx.moveTo(p[0], p[1]);
+        for (k= 0; k < 500; k++) {
+            var vel = field(p[0], p[1]);
+            p = numeric.sub(p, numeric.mul(scal, vel));
+            ctx.lineTo(p[0], p[1]);
+
+            if (p[0] > maxX || p[0] < minX || p[1] > maxY || p[1] < minY) {
+                break;
+            }
+        }
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
 }
 
 function drawWing(ctx) {
@@ -144,7 +188,6 @@ function drawWing(ctx) {
     ctx.beginPath();
     ctx.moveTo(wing[0][0], wing[0][1]);
     for (pt of wing) {
-        // console.log(pt[0], pt[1]);
         ctx.lineTo(pt[0], pt[1]);
     }
     ctx.closePath();
@@ -153,22 +196,22 @@ function drawWing(ctx) {
 }
 
 function setupScene() {
-    var uniformVelocity = [20, 0];
+    var uniformVelocity = [29, 0];
 
     var points = [];
-    var slices = 60;
+    var slices = 80;
     var radius = 100;
     for(var i = 0; i < slices; i ++) {
         points.push([
             radius * Math.cos(i * 2*Math.PI / slices),
-            radius * Math.sin(i * 2*Math.PI / slices)
+            radius * Math.sin(-i * 2*Math.PI / slices)
         ]);
     }
     // var points = [
-    //     [-100, 100],
-    //     [100, 100],
-    //     [100, -100],
-    //     [-100, -100]
+    //     [-1, 100],
+    //     [1, 100],
+    //     [1, -100],
+    //     [-1, -100]
     // ];
 
     for (var i = 0; i < points.length; i++) {
@@ -179,13 +222,14 @@ function setupScene() {
         var parallel = numeric.sub(p1, p0);
         var magP = numeric.norm2(parallel);
         var parallelUnit = numeric.mul(1/magP, parallel);
-        var normal =  numeric.dot([[0, -1], [1, 0]], parallelUnit);
+        var normal = numeric.dot([[0, -1], [1, 0]], parallelUnit);
         normals.push(normal);
     }
 
     wing = points;
 
-    var method = sourceSheet;
+    // var method = sourceSheet;
+    var method = vortexSheet;
 
     var A = [];
     var b = [];
@@ -195,7 +239,7 @@ function setupScene() {
         var An = [];
         for (var j = 0; j < points.length; j++) {
             var sheetJoint0 = points[j];
-            var sheetJoint1 = (j + 1 === points.length ? points[0]: points[j+1]);
+            var sheetJoint1 = (j + 1 == points.length ? points[0]: points[j+1]);
 
             var vFactor = method(
                 1,
@@ -203,28 +247,16 @@ function setupScene() {
                 sheetJoint1[0], sheetJoint1[1],
                 midpoint[0], midpoint[1]);
             var flux = numeric.dot(vFactor, normal);
-            if (i == 0 && j == 0) {
-                console.log(flux);
-                console.log(vFactor);
-                console.log(normal);
-            }
+            // console.log("midpoint", midpoint, sheetJoint0, sheetJoint1, "flux", flux);
             An.push(flux);
         }
-        // if (i == 0 && j == 0) {
-        //     console.log(flux);
-        // }
+
         A.push(An);
         b.push(-numeric.dot(uniformVelocity, normal));
     }
-    // var strengths = numeric.solve(A, b);
-    var LU = numeric.LU(A);
-    var strengths = numeric.LUsolve(LU, b);
-    // console.log("A", A[0]);
-    // console.log("b", b);
-    // console.log("strengths", strengths);
+    // console.log(A);
+    var strengths = numeric.solve(A, b);
 
-
-    // allFields = [uniformFlow(10, 0)];
     field = function(x, y) {
         var velocity = [0, 0];
         for (var i = 0; i < points.length; i++) {
@@ -234,7 +266,7 @@ function setupScene() {
             velocity = numeric.add(
                 velocity,
                 method(
-                    -strengths[i],
+                    strengths[i],
                     p0[0], p0[1],
                     p1[0], p1[1],
                     x, y))
@@ -286,16 +318,51 @@ function sourceSheet(lambda, x0, y0, x1, y1, x, y) {
 
 
     var v;
-    if (y_tilde === 0) {
-        // console.log("oh noes");
-        return sourceSheet(lambda, x0, y0, x1, y1, x + Math.random() * 0.000001, y + Math.random() * 0.000001);
+    if (y_tilde == 0) {
+        y_tilde = 0.00000000001;
     }
-    else {
-        v = lambda / 2 / Math.PI * (Math.atan((l/2 - x_tilde) / y_tilde) - Math.atan((-l/2 - x_tilde) / y_tilde));
-    }
+    v = lambda / 2 / Math.PI * (Math.atan((l/2 - x_tilde) / y_tilde) - Math.atan((-l/2 - x_tilde) / y_tilde));
 
     var u = Math.log(Math.pow(x_tilde - l/2, 2) + y_tilde * y_tilde) - Math.log(Math.pow(x_tilde + l/2, 2) + y_tilde * y_tilde);
     u = -lambda / 4 / Math.PI * u;
+
+    // Lastly, transform back into x, y coordinates
+    return numeric.add(numeric.mul(u, B), numeric.mul(v, C));
+}
+
+function vortexSheet(gamma, x0, y0, x1, y1, x, y) {
+    var l = Math.hypot(x1 - x0, y1 - y0);
+
+    var X0 = [x0, y0];
+    var X1 = [x1, y1];
+    var X = [x, y];
+
+    // finds the midpoint
+    var M = numeric.mul(0.5, numeric.add(X0, X1));
+
+    // points from midpoint to x1, our new x axis
+    var B = numeric.sub(X1, M);
+
+    // err...normalize that vector...
+    var magB = numeric.norm2(B);
+    B = numeric.mul(1/magB, B);
+
+    // points from the midpoint up, our new y axis
+    var C = numeric.dot([[0, -1], [1, 0]], B);
+
+    // points from the midpoint of the sheet to the point x, y
+    var A = numeric.sub(X, M);
+
+    var x_tilde = numeric.dot(A, B);
+    var y_tilde = numeric.dot(A, C);
+
+    if (y_tilde === 0) {
+        y_tilde = 0.00000000001;
+    }
+
+    var scale = gamma / 2 / Math.PI;
+    var v = scale * (x_tilde / y_tilde) * (Math.atan((x_tilde - l/2) / y_tilde) - Math.atan((x_tilde + l/2) / y_tilde));
+    var u = scale * (Math.atan((x_tilde + l/2) / y_tilde) - Math.atan((x_tilde - l/2) / y_tilde));
 
     // Lastly, transform back into x, y coordinates
     return numeric.add(numeric.mul(u, B), numeric.mul(v, C));
