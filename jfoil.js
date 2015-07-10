@@ -1,5 +1,7 @@
 var wing;
-var midPoints;
+var midpoints = [];
+var normals = [];
+var field;
 
 function graphContext(ctx) {
     /*
@@ -78,9 +80,9 @@ function drawArrows(ctx) {
     var minY = -sizeHeight / 2.0;
     var maxY = sizeHeight / 2.0;
 
-    var editor = ace.edit("editor");
-    var text = editor.getValue();
-    eval(text);
+    // var editor = ace.edit("editor");
+    // var text = editor.getValue();
+    // eval(text);
     for (var x = minX; x <= maxX; x+=spacing) {
         for (var y = minY; y <= maxY; y+=spacing) {
             // ctx.fillRect(x, y, 1, 1);
@@ -134,7 +136,7 @@ function drawArrowAbsolute(ctx, fromx, fromy, tox, toy){
 
 function draw(ctx) {
     drawArrows(ctx);
-    // drawWing(ctx);
+    drawWing(ctx);
 }
 
 function drawWing(ctx) {
@@ -150,59 +152,151 @@ function drawWing(ctx) {
 
 }
 
-function dist(point0, point1) {
-    var x = point1[0] - point0[0];
-    var y = point1[1] - point0[1];
-    return Math.hypot(x, y);
-}
-
 function setupScene() {
-    var points = [
-        [-200, 0],
-        [-100, 40],
-        [100, 40],
-        [200, 0]
-    ];
+    var uniformVelocity = [20, 0];
 
-    var midPoints = [];
+    var points = [];
+    var slices = 60;
+    var radius = 100;
+    for(var i = 0; i < slices; i ++) {
+        points.push([
+            radius * Math.cos(i * 2*Math.PI / slices),
+            radius * Math.sin(i * 2*Math.PI / slices)
+        ]);
+    }
+    // var points = [
+    //     [-100, 100],
+    //     [100, 100],
+    //     [100, -100],
+    //     [-100, -100]
+    // ];
+
     for (var i = 0; i < points.length; i++) {
         var p0 = points[i];
-        var p1;
-        if (i + 1 == points.length) {
-            p1 = points[0];
-        }
-        else {
-            p1 = points[i + 1];
-        }
-        midPoints.push([
-            (p0[0] + p1[0]) / 2,
-            (p0[1] + p1[1]) / 2,
-        ])
+        var p1 = (i + 1 == points.length? points[0]: points[i + 1]);
+        midpoints.push(numeric.mul(.5, numeric.add(p0, p1)));
+
+        var parallel = numeric.sub(p1, p0);
+        var magP = numeric.norm2(parallel);
+        var parallelUnit = numeric.mul(1/magP, parallel);
+        var normal =  numeric.dot([[0, -1], [1, 0]], parallelUnit);
+        normals.push(normal);
     }
 
     wing = points;
-    midPoints = midPoints;
 
-    for (pt of midPoints) {
-        console.log(pt);
-    }
+    var method = sourceSheet;
 
     var A = [];
     var b = [];
     for (var i = 0; i < points.length; i++) {
-        var midpoint = midPoints[i];
+        var midpoint = midpoints[i];
+        var normal = normals[i];
         var An = [];
         for (var j = 0; j < points.length; j++) {
-            var vortex = points[j];
-            var d = dist(midpoint, vortex);
-            console.log("DISTANCE BETWEEN", vortex, midpoint, d);
-            An.push(1 / d / d);
+            var sheetJoint0 = points[j];
+            var sheetJoint1 = (j + 1 === points.length ? points[0]: points[j+1]);
+
+            var vFactor = method(
+                1,
+                sheetJoint0[0], sheetJoint0[1],
+                sheetJoint1[0], sheetJoint1[1],
+                midpoint[0], midpoint[1]);
+            var flux = numeric.dot(vFactor, normal);
+            if (i == 0 && j == 0) {
+                console.log(flux);
+                console.log(vFactor);
+                console.log(normal);
+            }
+            An.push(flux);
         }
+        // if (i == 0 && j == 0) {
+        //     console.log(flux);
+        // }
         A.push(An);
-        b.push(0);
+        b.push(-numeric.dot(uniformVelocity, normal));
     }
-    console.log("A", A);
-    console.log("b", b);
-    var x = numeric.solve(A, b);
-    console.log("x", x);
+    // var strengths = numeric.solve(A, b);
+    var LU = numeric.LU(A);
+    var strengths = numeric.LUsolve(LU, b);
+    // console.log("A", A[0]);
+    // console.log("b", b);
+    // console.log("strengths", strengths);
+
+
+    // allFields = [uniformFlow(10, 0)];
+    field = function(x, y) {
+        var velocity = [0, 0];
+        for (var i = 0; i < points.length; i++) {
+            var p0 = points[i];
+            var p1 = (i + 1 == points.length? points[0]: points[i + 1]);
+
+            velocity = numeric.add(
+                velocity,
+                method(
+                    -strengths[i],
+                    p0[0], p0[1],
+                    p1[0], p1[1],
+                    x, y))
+        }
+
+        return numeric.add(uniformVelocity, velocity);
+    }
+}
+
+
+function addAll(listOfPoints) {
+    result = [0, 0];
+    for (var pt of listOfPoints) {
+        result[0] += pt[0];
+        result[1] += pt[1];
+    }
+    return result;
+}
+
+function uniformFlow(Ux, Uy) {
+    return [Ux, Uy];
+}
+
+function sourceSheet(lambda, x0, y0, x1, y1, x, y) {
+    var l = Math.hypot(x1 - x0, y1 - y0);
+
+    var X0 = [x0, y0];
+    var X1 = [x1, y1];
+    var X = [x, y];
+
+    // finds the midpoint
+    var M = numeric.mul(0.5, numeric.add(X0, X1));
+
+    // points from midpoint to x1, our new x axis
+    var B = numeric.sub(X1, M);
+
+    // err...normalize that vector...
+    var magB = numeric.norm2(B);
+    B = numeric.mul(1/magB, B);
+
+    // points from the midpoint up, our new y axis
+    var C = numeric.dot([[0, -1], [1, 0]], B);
+
+    // points from the midpoint of the sheet to the point x, y
+    var A = numeric.sub(X, M);
+
+    var x_tilde = numeric.dot(A, B);
+    var y_tilde = numeric.dot(A, C);
+
+
+    var v;
+    if (y_tilde === 0) {
+        // console.log("oh noes");
+        return sourceSheet(lambda, x0, y0, x1, y1, x + Math.random() * 0.000001, y + Math.random() * 0.000001);
+    }
+    else {
+        v = lambda / 2 / Math.PI * (Math.atan((l/2 - x_tilde) / y_tilde) - Math.atan((-l/2 - x_tilde) / y_tilde));
+    }
+
+    var u = Math.log(Math.pow(x_tilde - l/2, 2) + y_tilde * y_tilde) - Math.log(Math.pow(x_tilde + l/2, 2) + y_tilde * y_tilde);
+    u = -lambda / 4 / Math.PI * u;
+
+    // Lastly, transform back into x, y coordinates
+    return numeric.add(numeric.mul(u, B), numeric.mul(v, C));
 }
