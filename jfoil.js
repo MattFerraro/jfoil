@@ -196,7 +196,7 @@ function drawWing(ctx) {
 }
 
 function setupScene() {
-    var uniformVelocity = [29, 0];
+    var uniformVelocity = [100, 0];
 
     var points = [];
     var slices = 80;
@@ -208,10 +208,10 @@ function setupScene() {
         ]);
     }
     // var points = [
-    //     [-1, 100],
-    //     [1, 100],
-    //     [1, -100],
-    //     [-1, -100]
+    //     [-200, 0],
+    //     [-100, 40],
+    //     [100, 40],
+    //     [200, 0]
     // ];
 
     for (var i = 0; i < points.length; i++) {
@@ -356,12 +356,17 @@ function vortexSheet(gamma, x0, y0, x1, y1, x, y) {
     var x_tilde = numeric.dot(A, B);
     var y_tilde = numeric.dot(A, C);
 
-    if (y_tilde === 0) {
+    if (y_tilde == 0) {
+
         y_tilde = 0.00000000001;
     }
 
     var scale = gamma / 2 / Math.PI;
     var v = scale * (x_tilde / y_tilde) * (Math.atan((x_tilde - l/2) / y_tilde) - Math.atan((x_tilde + l/2) / y_tilde));
+
+    if (y_tilde == 0 && x_tilde > x0 && x_tilde < x1) {
+        v = gamma / 2;
+    }
     var u = scale * (Math.atan((x_tilde + l/2) / y_tilde) - Math.atan((x_tilde - l/2) / y_tilde));
 
     // Lastly, transform back into x, y coordinates
